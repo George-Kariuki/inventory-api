@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+# poetry.lock - Keep this for reproducible builds
+*.db
+*.sqlite
+*.sqlite3
+inventory.db
+.env
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
