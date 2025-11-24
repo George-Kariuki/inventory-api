@@ -4,7 +4,7 @@ A step-by-step learning project to master backend development and DevOps fundame
 
 ## Current Stage
 
-**Stage 1 – Backend Developer (Focus: Code & Logic)**
+**Stage 3 – Mid-Level DevOps (Focus: CI/CD Automation)**
 
 ### Learning Goals
 - ✅ Build a solid REST API with Python (FastAPI)
@@ -23,9 +23,9 @@ A step-by-step learning project to master backend development and DevOps fundame
 
 ## Project Stages Overview
 
-1. **Stage 1**: Backend Developer (Code & Logic) - *Current* ✅
-2. **Stage 2**: Junior DevOps (Packaging with Docker) - *Next*
-3. **Stage 3**: Mid-Level DevOps (CI/CD Automation)
+1. **Stage 1**: Backend Developer (Code & Logic) - ✅ *Completed*
+2. **Stage 2**: Junior DevOps (Packaging with Docker) - ✅ *Completed*
+3. **Stage 3**: Mid-Level DevOps (CI/CD Automation) - *Current* ✅
 4. **Stage 4**: Senior DevOps (Scale & Observability)
 
 ---
@@ -1836,3 +1836,228 @@ These advanced enhancements provide:
 - **Environment configs:** Separate settings for dev/staging/prod
 
 These are common production practices that improve security, monitoring, and maintainability.
+---
+
+## Stage 3: Step-by-Step Implementation Guide
+
+### What is CI/CD?
+
+CI/CD (Continuous Integration / Continuous Deployment or Delivery) automates quality checks every time code changes land in the repository.
+
+- **Continuous Integration (CI):** automatically tests and builds code whenever you push changes.
+- **Continuous Deployment/Delivery (CD):** automatically deploys or prepares artefacts once CI succeeds (we stop at automated tests/builds for now).
+
+**Benefits**
+- Catch bugs early and keep `main` healthy.
+- Automate repetitive steps (tests, builds, packaging).
+- Provide visibility via GitHub Actions logs.
+- Enable faster, safer releases.
+
+**What we built**
+- Git repository (locally and on GitHub).
+- GitHub Actions workflow triggered on every push/PR.
+- Automated steps: checkout → install deps → run tests → build Docker image.
+- Workflow status visible in the GitHub Actions tab.
+
+---
+
+### Step 1: Initialize Git Repository
+
+CI/CD needs version control. If you haven’t already:
+
+```bash
+# Initialize git repo (run in project root)
+git init
+
+# Inspect current status
+git status
+```
+
+This creates `.git/`, enabling GitHub Actions.
+
+---
+
+### Step 2: Create GitHub Actions Workflow
+
+GitHub Actions reads YAML files under `.github/workflows/`.
+
+**File:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
+      - run: poetry install --no-interaction --no-ansi
+      - run: poetry run pytest tests/ -v
+      - run: poetry run python -m py_compile app/**/*.py || true
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: inventory-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+**Workflow overview**
+- `test` job: checkout → Python 3.12 → install Poetry → cache deps → install → run tests → syntax check.
+- `build` job: runs only if tests succeed (`needs: test`), builds Docker image with cache support.
+
+---
+
+### Step 3: Update `.gitignore`
+
+Track `poetry.lock` for reproducible builds:
+
+```diff
+- poetry.lock
++# poetry.lock - Keep this for reproducible builds
+```
+
+---
+
+### Step 4: Commit and Push to GitHub
+
+Create a GitHub repository (https://github.com/new):
+1. Name: `inventory-api` (or your preference)
+2. Description: “A learning project for backend and DevOps fundamentals”
+3. Public or Private
+4. **Do not** initialize with README/.gitignore (we already have them)
+
+Then connect the local repo to GitHub:
+
+```bash
+# Stage and commit
+ git add .
+ git commit -m "Initial commit: FastAPI Inventory API with Docker and CI/CD"
+
+# Point to your GitHub repo (replace USERNAME)
+ git remote add origin https://github.com/YOUR_USERNAME/inventory-api.git
+
+# Push
+ git branch -M main
+ git push -u origin main
+```
+
+---
+
+### Step 5: Watch CI/CD in Action
+
+After pushing:
+1. Open the GitHub repository page
+2. Click the **Actions** tab
+3. Workflow runs automatically (yellow dot = running, green check = success)
+4. Click the job to view live logs (tests, installs, builds)
+
+**Testing the workflow:**
+
+```bash
+# Make a change (e.g., README)
+git add README.md
+git commit -m "Test CI/CD"
+git push
+```
+
+GitHub Actions automatically reruns. Use the Actions tab to view status and logs.
+
+---
+
+### Quick Reference: CI/CD Commands
+
+```bash
+# Check git status
+git status
+
+# Stage + commit changes
+git add .
+git commit -m "Message"
+
+# Push (triggers CI)
+git push
+```
+
+**View workflow runs:** GitHub → repository → Actions tab → select run.  
+**Re-run failed jobs:** open failed run → “Re-run jobs”.
+
+---
+
+### What We’ve Accomplished in Stage 3
+
+#### ✅ CI/CD Pipeline
+- Git repository initialized and pushed to GitHub
+- GitHub Actions workflow configured (`.github/workflows/ci.yml`)
+- Automated testing on every push/PR
+- Docker builds triggered automatically
+
+#### ✅ Quality Gates
+- Tests must pass before Docker build runs
+- Workflow logs stored in GitHub for auditability
+- Deterministic dependency management (lock file tracked)
+
+#### ✅ Developer Experience
+- Single push triggers full pipeline
+- Caching speeds up repeat runs
+- Failure notifications via GitHub UI/emails
+
+---
+
+### Key Concepts Learned (Stage 3)
+
+- **Git & GitHub Basics**: init, add, commit, remote, push.
+- **GitHub Actions**: workflows, jobs, steps, caching.
+- **CI Pipelines**: automated testing gating builds.
+- **Docker Build Automation**: build job ensures image integrity.
+- **Observability**: checking logs/results in Actions tab.
+
+---
+
+### Troubleshooting CI/CD
+
+**Workflow not running:** ensure repo is on GitHub, workflow file committed to `main`, and branch filters match.
+
+**Workflow failed:** open Actions tab → click failed run → read logs → fix locally → push new commit. Use “Re-run jobs” after fixes if needed.
+
+**Cache issues:** update cache key (e.g., change version string) or clear cache via GitHub Actions settings.
+
+---
+
+### Next Steps for Stage 3
+
+- [x] ✅ Initialize git repository
+- [x] ✅ Create GitHub Actions workflow
+- [x] ✅ Track `poetry.lock` for reproducibility
+- [x] ✅ Push repository to GitHub and verify Actions
+- [ ] Add linting/formatting jobs (ruff, black, mypy)
+- [ ] Publish Docker image to a registry (Docker Hub/GitHub Packages)
+- [ ] Add deployment step (Heroku, Render, Fly.io, etc.)
+- [ ] Add status badges to README (build/test status)
+
