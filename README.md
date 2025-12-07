@@ -1856,8 +1856,12 @@ CI/CD (Continuous Integration / Continuous Deployment or Delivery) automates qua
 **What we built**
 - Git repository (locally and on GitHub).
 - GitHub Actions workflow triggered on every push/PR.
-- Automated steps: checkout → install deps → run tests → build Docker image.
+- Complete CI/CD pipeline: linting → testing → building → Docker Hub publishing → Heroku deployment.
+- Code quality tools: Ruff (linter), Black (formatter), MyPy (type checker).
+- Automated Docker image publishing to Docker Hub.
+- Automatic deployment to Heroku (on main branch).
 - Workflow status visible in the GitHub Actions tab.
+- Live API accessible on the internet!
 
 ---
 
@@ -2010,33 +2014,55 @@ git push
 
 ---
 
-### What We’ve Accomplished in Stage 3
+### What We've Accomplished in Stage 3
 
 #### ✅ CI/CD Pipeline
 - Git repository initialized and pushed to GitHub
 - GitHub Actions workflow configured (`.github/workflows/ci.yml`)
 - Automated testing on every push/PR
 - Docker builds triggered automatically
+- **Docker images published to Docker Hub** (tagged with latest + commit SHA)
+- **Automatic deployment to Heroku** (on main branch pushes)
+
+#### ✅ Code Quality & Linting
+- **Ruff linter** - Catches errors, unused imports, style issues
+- **Black formatter** - Enforces consistent code style automatically
+- **MyPy type checker** - Verifies type hints are correct
+- All code auto-formatted and linted
+- Linting runs before tests (fails fast on code quality issues)
 
 #### ✅ Quality Gates
+- Linting must pass before tests run
 - Tests must pass before Docker build runs
+- Build must succeed before deployment
 - Workflow logs stored in GitHub for auditability
 - Deterministic dependency management (lock file tracked)
 
+#### ✅ Deployment Automation
+- **Heroku Container Registry** - Docker-based deployment
+- **Automatic releases** - Code goes live in ~5-10 minutes
+- **Environment configuration** - Heroku PostgreSQL automatically configured
+- **Live API** - Accessible at `https://YOUR_APP_NAME.herokuapp.com`
+
 #### ✅ Developer Experience
-- Single push triggers full pipeline
+- Single push triggers full pipeline (lint → test → build → deploy)
 - Caching speeds up repeat runs
 - Failure notifications via GitHub UI/emails
+- Complete setup guide for easy onboarding
+- Local testing commands for all tools
 
 ---
 
 ### Key Concepts Learned (Stage 3)
 
 - **Git & GitHub Basics**: init, add, commit, remote, push.
-- **GitHub Actions**: workflows, jobs, steps, caching.
-- **CI Pipelines**: automated testing gating builds.
-- **Docker Build Automation**: build job ensures image integrity.
-- **Observability**: checking logs/results in Actions tab.
+- **GitHub Actions**: workflows, jobs, steps, caching, secrets.
+- **CI/CD Pipelines**: automated linting → testing → building → deploying.
+- **Code Quality Tools**: Ruff (linter), Black (formatter), MyPy (type checker).
+- **Docker Registries**: storing and sharing Docker images (Docker Hub).
+- **Container Deployment**: deploying Docker containers to cloud platforms (Heroku).
+- **Infrastructure as Code**: defining deployment in YAML files.
+- **Observability**: checking logs/results in Actions tab and Heroku dashboard.
 
 ---
 
@@ -2050,14 +2076,270 @@ git push
 
 ---
 
+### Step 6: Add Linting and Formatting Tools
+
+**Goal:** Automatically check code quality and enforce consistent style.
+
+**Why linting/formatting?**
+- **Catch bugs early** - Find errors before they reach production
+- **Consistent code style** - All code looks the same (easier to read)
+- **Learn best practices** - Tools teach you Python conventions automatically
+- **Faster code reviews** - Less time discussing style, more time on logic
+
+**Tools we added:**
+- **Ruff** - Fast Python linter (catches errors, unused imports, style issues)
+- **Black** - Code formatter (automatically formats code to consistent style)
+- **MyPy** - Type checker (verifies type hints are correct)
+
+**File:** [`pyproject.toml`](pyproject.toml)
+
+**Added to dev dependencies:**
+```toml
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.6.0"
+black = "^24.10.0"
+mypy = "^1.11.0"
+```
+
+**Configuration added:**
+```toml
+[tool.black]
+line-length = 100
+target-version = ['py312']
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+ignore_missing_imports = true
+```
+
+**Updated CI workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+Added a new `lint` job that runs before tests:
+```yaml
+lint:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Run Ruff (linter)
+      run: poetry run ruff check app/ tests/
+    - name: Check Black formatting
+      run: poetry run black --check app/ tests/
+    - name: Run MyPy (type checker)
+      run: poetry run mypy app/ || true
+```
+
+**Local commands:**
+```bash
+# Check for linting issues
+poetry run ruff check app/
+
+# Auto-fix linting issues
+poetry run ruff check --fix app/
+
+# Check code formatting
+poetry run black --check app/
+
+# Format code automatically
+poetry run black app/
+
+# Type check
+poetry run mypy app/
+```
+
+**What happens:**
+- Every push runs linting first
+- If code doesn't pass, workflow fails
+- Forces you to write clean, consistent code
+
+---
+
+### Step 7: Publish Docker Image to Docker Hub
+
+**Goal:** Store Docker images in a registry for easy sharing and deployment.
+
+**Why Docker Hub?**
+- **Share images** - Anyone can pull and run your app
+- **Version control** - Tag images with versions (v1.0.0, latest)
+- **Deployment** - Production servers can pull from registry
+- **Backup** - Images stored in the cloud
+
+**Updated CI workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+**Added to build job:**
+```yaml
+build:
+  steps:
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/inventory-api:latest
+          ${{ secrets.DOCKER_USERNAME }}/inventory-api:${{ github.sha }}
+```
+
+**Image tagging:**
+- `latest` - Always points to the latest main branch build
+- `sha-abc123` - Specific commit (for rollback if needed)
+- `main-abc123` - Branch name + commit (for feature branches)
+
+**What happens:**
+- After tests pass, Docker image is built
+- Image is pushed to Docker Hub automatically
+- Anyone can pull: `docker pull YOUR_USERNAME/inventory-api:latest`
+
+---
+
+### Step 8: Deploy to Heroku
+
+**Goal:** Automatically deploy your app to the cloud on every push to main.
+
+**Why Heroku?**
+- **Free tier** - Great for learning and small projects
+- **Easy deployment** - Just push code, Heroku handles the rest
+- **Managed services** - Database, logging, monitoring included
+- **Real URL** - Your API is live on the internet!
+
+**Files created:**
+- [`heroku.yml`](heroku.yml) - Heroku Docker configuration
+- [`SETUP_GUIDE.md`](SETUP_GUIDE.md) - Complete setup instructions
+
+**Updated CI workflow:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+**Added deploy job:**
+```yaml
+deploy:
+  runs-on: ubuntu-latest
+  needs: build
+  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  
+  steps:
+    - name: Set Heroku stack to container
+      run: heroku stack:set container -a ${{ secrets.HEROKU_APP_NAME }}
+    
+    - name: Build and push to Heroku
+      run: |
+        docker build -t registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web .
+        docker push registry.heroku.com/${{ secrets.HEROKU_APP_NAME }}/web
+    
+    - name: Release on Heroku
+      run: heroku container:release web -a ${{ secrets.HEROKU_APP_NAME }}
+```
+
+**What happens:**
+- Only runs on `main` branch pushes
+- Sets Heroku to use container stack
+- Builds Docker image for Heroku
+- Pushes to Heroku Container Registry
+- Releases to production automatically
+
+**Your live API:**
+- Main URL: `https://YOUR_APP_NAME.herokuapp.com`
+- Interactive docs: `https://YOUR_APP_NAME.herokuapp.com/docs`
+- Health check: `https://YOUR_APP_NAME.herokuapp.com/health`
+
+---
+
+### Step 9: Setup Guide and Configuration
+
+**Goal:** Document the complete setup process for easy reference.
+
+**File created:** [`SETUP_GUIDE.md`](SETUP_GUIDE.md)
+
+**Includes:**
+- Step-by-step account creation (Docker Hub, Heroku)
+- GitHub secrets configuration
+- Heroku PostgreSQL setup
+- Troubleshooting guide
+- Local testing commands
+
+**Required GitHub Secrets:**
+1. `DOCKER_USERNAME` - Your Docker Hub username
+2. `DOCKER_PASSWORD` - Docker Hub access token
+3. `HEROKU_EMAIL` - Heroku account email
+4. `HEROKU_API_KEY` - Heroku API key
+5. `HEROKU_APP_NAME` - Your Heroku app name
+
+**Setup steps:**
+1. Create Docker Hub account → Get access token
+2. Create Heroku account → Create app → Get API key
+3. Add PostgreSQL addon to Heroku app
+4. Add all secrets to GitHub repository
+5. Push code → Watch deployment!
+
+See [`SETUP_GUIDE.md`](SETUP_GUIDE.md) for detailed instructions.
+
+---
+
+### What Happens on Every Push
+
+**Complete CI/CD Pipeline:**
+
+1. **Linting Job** (runs first)
+   - Ruff checks code quality
+   - Black verifies formatting
+   - MyPy checks type hints
+   - ✅ Pass → Continue, ❌ Fail → Stop
+
+2. **Test Job** (runs after linting)
+   - Installs dependencies
+   - Runs all pytest tests
+   - ✅ Pass → Continue, ❌ Fail → Stop
+
+3. **Build Job** (runs after tests)
+   - Builds Docker image
+   - Pushes to Docker Hub
+   - Tags with latest + commit SHA
+
+4. **Deploy Job** (only on main branch)
+   - Sets Heroku stack to container
+   - Builds image for Heroku
+   - Pushes to Heroku Container Registry
+   - Releases to production
+   - 🎉 Your API is live!
+
+**Total time:** ~5-10 minutes from push to live deployment
+
+---
+
+### Files Created/Modified
+
+**New files:**
+- [`heroku.yml`](heroku.yml) - Heroku Docker configuration
+- [`SETUP_GUIDE.md`](SETUP_GUIDE.md) - Complete setup instructions
+
+**Modified files:**
+- [`pyproject.toml`](pyproject.toml) - Added linting tools and configuration
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) - Added linting, Docker Hub, and Heroku deployment
+- [`Dockerfile`](Dockerfile) - Added system dependencies for PostgreSQL
+- All code files - Auto-formatted with black and ruff
+
+---
+
 ### Next Steps for Stage 3
 
 - [x] ✅ Initialize git repository
 - [x] ✅ Create GitHub Actions workflow
 - [x] ✅ Track `poetry.lock` for reproducibility
 - [x] ✅ Push repository to GitHub and verify Actions
-- [ ] Add linting/formatting jobs (ruff, black, mypy)
-- [ ] Publish Docker image to a registry (Docker Hub/GitHub Packages)
-- [ ] Add deployment step (Heroku, Render, Fly.io, etc.)
+- [x] ✅ Add linting/formatting jobs (ruff, black, mypy)
+- [x] ✅ Publish Docker image to a registry (Docker Hub)
+- [x] ✅ Add deployment step (Heroku)
+- [x] ✅ Create setup guide (SETUP_GUIDE.md)
 - [ ] Add status badges to README (build/test status)
+- [ ] Add deployment notifications (Slack, email)
 
