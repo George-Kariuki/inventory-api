@@ -20,3 +20,14 @@ inventory.db
 *~
 .DS_Store
 
+# SSH keys (sensitive)
+.ssh/
+*.pem
+*.key
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl
+

@@ -2,6 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 from app.api import products
 from app.database import create_db_and_tables
@@ -37,6 +39,15 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/metrics")
+async def metrics():
+    """
+    Prometheus metrics endpoint.
+    Exposes application metrics for Prometheus to scrape.
+    """
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 app.include_router(products.router)

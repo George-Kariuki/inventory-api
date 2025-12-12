@@ -4,7 +4,7 @@ A step-by-step learning project to master backend development and DevOps fundame
 
 ## Current Stage
 
-**Stage 3 – Mid-Level DevOps (Focus: CI/CD Automation)**
+**Stage 4 – Senior DevOps (Focus: Scale & Observability)**
 
 ### Learning Goals
 - ✅ Build a solid REST API with Python (FastAPI)
@@ -25,8 +25,8 @@ A step-by-step learning project to master backend development and DevOps fundame
 
 1. **Stage 1**: Backend Developer (Code & Logic) - ✅ *Completed*
 2. **Stage 2**: Junior DevOps (Packaging with Docker) - ✅ *Completed*
-3. **Stage 3**: Mid-Level DevOps (CI/CD Automation) - *Current* ✅
-4. **Stage 4**: Senior DevOps (Scale & Observability)
+3. **Stage 3**: Mid-Level DevOps (CI/CD Automation) - ✅ *Completed*
+4. **Stage 4**: Senior DevOps (Scale & Observability) - *Current* ✅
 
 ---
 
@@ -2320,7 +2320,6 @@ See [`SETUP_GUIDE.md`](SETUP_GUIDE.md) for detailed instructions.
 
 **New files:**
 - [`heroku.yml`](heroku.yml) - Heroku Docker configuration
-- [`SETUP_GUIDE.md`](SETUP_GUIDE.md) - Complete setup instructions
 
 **Modified files:**
 - [`pyproject.toml`](pyproject.toml) - Added linting tools and configuration
@@ -2339,7 +2338,951 @@ See [`SETUP_GUIDE.md`](SETUP_GUIDE.md) for detailed instructions.
 - [x] ✅ Add linting/formatting jobs (ruff, black, mypy)
 - [x] ✅ Publish Docker image to a registry (Docker Hub)
 - [x] ✅ Add deployment step (Heroku)
-- [x] ✅ Create setup guide (SETUP_GUIDE.md)
 - [ ] Add status badges to README (build/test status)
 - [ ] Add deployment notifications (Slack, email)
+
+---
+
+## Stage 3: Setup Guide - Accounts and Secrets Configuration
+
+This guide will walk you through creating the necessary accounts and configuring secrets for CI/CD.
+
+### Step 1: Create Docker Hub Account
+
+**Why:** To store and share Docker images
+
+**Steps:**
+1. Go to https://hub.docker.com/signup
+2. Create a free account (choose a username - this will be your Docker Hub username)
+3. Verify your email address
+4. **Note your username** - you'll need it for secrets
+
+**What you'll need:**
+- Docker Hub Username (e.g., `georgekariuki`)
+- Docker Hub Password (or Access Token - recommended)
+
+**Create Access Token (Recommended):**
+1. Go to https://hub.docker.com/settings/security
+2. Click "New Access Token"
+3. Name it: `github-actions`
+4. Copy the token (you won't see it again!)
+5. Use this token as your `DOCKER_PASSWORD` secret
+
+---
+
+### Step 2: Create Heroku Account
+
+**Why:** To deploy your application to the cloud
+
+**Steps:**
+1. Go to https://signup.heroku.com/
+2. Create a free account
+3. Verify your email address
+4. **Note your email** - you'll need it for secrets
+
+**Install Heroku CLI (Optional but helpful):**
+```bash
+# macOS
+brew tap heroku/brew && brew install heroku
+
+# Or download from: https://devcenter.heroku.com/articles/heroku-cli
+```
+
+**Login to Heroku:**
+```bash
+heroku login
+```
+
+**Create a Heroku App:**
+```bash
+# Create app (choose a unique name)
+heroku create inventory-api-yourname
+
+# Or create via web: https://dashboard.heroku.com/new-app
+```
+
+**Get Heroku API Key:**
+1. Go to https://dashboard.heroku.com/account
+2. Scroll to "API Key"
+3. Click "Reveal" and copy it
+4. This is your `HEROKU_API_KEY` secret
+
+**What you'll need:**
+- Heroku Email (the email you signed up with)
+- Heroku API Key (from account settings)
+- Heroku App Name (e.g., `inventory-api-yourname`)
+
+---
+
+### Step 3: Configure GitHub Secrets
+
+**Why:** GitHub Actions needs credentials to push to Docker Hub and deploy to Heroku
+
+**Steps:**
+1. Go to your GitHub repository: https://github.com/George-Kariuki/inventory-api
+2. Click **Settings** (top menu)
+3. Click **Secrets and variables** → **Actions** (left sidebar)
+4. Click **New repository secret** for each secret below:
+
+#### Required Secrets:
+
+**Docker Hub Secrets:**
+- **Name:** `DOCKER_USERNAME`
+  - **Value:** Your Docker Hub username (e.g., `georgekariuki`)
+
+- **Name:** `DOCKER_PASSWORD`
+  - **Value:** Your Docker Hub password OR access token (recommended)
+
+**Heroku Secrets:**
+- **Name:** `HEROKU_EMAIL`
+  - **Value:** Your Heroku account email
+
+- **Name:** `HEROKU_API_KEY`
+  - **Value:** Your Heroku API key (from https://dashboard.heroku.com/account)
+
+- **Name:** `HEROKU_APP_NAME`
+  - **Value:** Your Heroku app name (e.g., `inventory-api-yourname`)
+
+**Important:** 
+- Secrets are encrypted and only visible to GitHub Actions
+- Never commit secrets to your code!
+- If you change a secret, update it in GitHub Settings
+
+---
+
+### Step 4: Configure Heroku Environment Variables
+
+**Why:** Your app needs database connection and other configs on Heroku
+
+**Steps:**
+1. Go to https://dashboard.heroku.com/apps/YOUR_APP_NAME/settings
+2. Click **Reveal Config Vars**
+3. Add these variables:
+
+**Required:**
+- **Key:** `DATABASE_URL`
+  - **Value:** Will be auto-created when you add PostgreSQL addon (see below)
+
+**Optional (for production):**
+- **Key:** `ENVIRONMENT`
+  - **Value:** `production`
+
+- **Key:** `LOG_LEVEL`
+  - **Value:** `INFO`
+
+---
+
+### Step 5: Add PostgreSQL to Heroku
+
+**Why:** Your app needs a database
+
+**Steps:**
+1. Go to https://dashboard.heroku.com/apps/YOUR_APP_NAME/resources
+2. Search for "Heroku Postgres"
+3. Click "Add" (free tier: "Hobby Dev")
+4. The `DATABASE_URL` will be automatically set!
+
+**Or via CLI:**
+```bash
+heroku addons:create heroku-postgresql:hobby-dev
+```
+
+---
+
+### Step 6: Test the Setup
+
+**After configuring all secrets:**
+
+1. **Push your code:**
+   ```bash
+   git add .
+   git commit -m "Add CI/CD with linting, Docker Hub, and Heroku"
+   git push
+   ```
+
+2. **Watch GitHub Actions:**
+   - Go to https://github.com/George-Kariuki/inventory-api/actions
+   - Click on the running workflow
+   - Watch it:
+     - ✅ Run linting (ruff, black, mypy)
+     - ✅ Run tests
+     - ✅ Build Docker image
+     - ✅ Push to Docker Hub
+     - ✅ Deploy to Heroku
+
+3. **Check your app:**
+   - Go to https://YOUR_APP_NAME.herokuapp.com
+   - Test endpoints: https://YOUR_APP_NAME.herokuapp.com/docs
+
+---
+
+### Troubleshooting (Stage 3 Setup)
+
+**Docker Hub Push Fails:**
+- Check `DOCKER_USERNAME` and `DOCKER_PASSWORD` secrets are correct
+- Verify Docker Hub account is active
+- Try using an access token instead of password
+
+**Heroku Deployment Fails:**
+- Check all Heroku secrets are set correctly
+- Verify Heroku app name matches `HEROKU_APP_NAME` secret
+- Check Heroku logs: `heroku logs --tail -a YOUR_APP_NAME`
+
+**Linting Fails:**
+- Run locally: `poetry run ruff check app/`
+- Auto-fix: `poetry run ruff check --fix app/`
+- Format: `poetry run black app/`
+
+---
+
+### Quick Reference (Stage 3)
+
+**Local Commands:**
+```bash
+# Lint code
+poetry run ruff check app/
+
+# Auto-fix linting issues
+poetry run ruff check --fix app/
+
+# Format code
+poetry run black app/
+
+# Type check
+poetry run mypy app/
+
+# Run all checks
+poetry run ruff check app/ && poetry run black --check app/ && poetry run mypy app/
+```
+
+**Heroku Commands:**
+```bash
+# View logs
+heroku logs --tail -a YOUR_APP_NAME
+
+# Open app
+heroku open -a YOUR_APP_NAME
+
+# Check app status
+heroku ps -a YOUR_APP_NAME
+```
+
+---
+
+## Stage 4: Senior DevOps (Scale & Observability) - Complete Guide
+
+### What is Infrastructure as Code (IaC)?
+
+**Infrastructure as Code (IaC)** means defining your servers, databases, and networks in code files (like Terraform), instead of clicking buttons in a web interface.
+
+**Why it matters:**
+- **Version Control** - Track changes to infrastructure like code
+- **Reproducible** - Same infrastructure every time
+- **Automated** - No manual clicking, less human error
+- **Documented** - Code shows exactly what you have
+
+**Example:**
+Instead of manually creating an EC2 instance in AWS console, you write:
+```hcl
+resource "aws_instance" "app" {
+  instance_type = "t2.micro"
+  ami           = "ami-12345"
+}
+```
+
+Then run `terraform apply` and it creates the server automatically!
+
+---
+
+### What is Observability?
+
+**Observability** means understanding what your application is doing:
+- **Metrics** - Numbers (CPU usage, memory, requests per second)
+- **Logs** - Text messages (errors, info)
+- **Traces** - Request paths through your system
+
+**Why it matters:**
+- **Debug faster** - Know exactly what's wrong
+- **Prevent crashes** - See problems before they happen
+- **Optimize** - Find bottlenecks and fix them
+- **Alert** - Get notified when things break
+
+**Prometheus** collects metrics (like how much RAM your app uses) and stores them so you can visualize and alert on them.
+
+---
+
+### What We'll Build
+
+1. **Terraform Configuration**
+   - Define AWS EC2 instance in code
+   - Configure security groups (firewall rules)
+   - Set up networking
+
+2. **EC2 Instance**
+   - Small virtual server (t2.micro - free tier eligible)
+   - Run your Docker containerized app
+   - Accessible from the internet
+
+3. **Prometheus**
+   - Monitor your app's metrics
+   - Track RAM, CPU, request rates
+   - Visualize in Grafana (optional, but cool!)
+
+---
+
+### Prerequisites
+
+Before we start, you'll need:
+
+1. **AWS Account** (Free Tier)
+   - Sign up: https://aws.amazon.com/free/
+   - Free tier includes: 750 hours/month of t2.micro EC2
+   - You'll need a credit card (won't be charged if you stay in free tier)
+
+2. **AWS CLI** (optional, but helpful)
+   - Install: https://aws.amazon.com/cli/
+   - Configure: `aws configure`
+   - Or use environment variables (see below)
+
+3. **Terraform** (we'll install this)
+   - Infrastructure as Code tool
+   - We'll install it in the project
+
+---
+
+### Stage 4: Step-by-Step Implementation
+
+#### Step 1: Install Terraform
+
+**What is Terraform?**
+Terraform is a tool that lets you define infrastructure in code and deploy it to cloud providers (AWS, Azure, GCP, etc.).
+
+**Installation:**
+
+**macOS:**
+```bash
+brew install terraform
+```
+
+**Linux:**
+```bash
+# Download from: https://www.terraform.io/downloads
+wget https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip
+unzip terraform_1.6.0_linux_amd64.zip
+sudo mv terraform /usr/local/bin/
+```
+
+**Verify:**
+```bash
+terraform version
+```
+
+---
+
+#### Step 2: Set Up AWS Credentials
+
+**Option 1: AWS CLI (Recommended)**
+```bash
+# Install AWS CLI
+# macOS: brew install awscli
+# Then configure:
+aws configure
+```
+
+You'll need:
+- **AWS Access Key ID** - Get from AWS Console → IAM → Users → Security Credentials
+- **AWS Secret Access Key** - Created when you create access key
+- **Default region** - e.g., `us-east-1`
+- **Output format** - `json`
+
+**Option 2: Environment Variables**
+```bash
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+**How to get AWS credentials:**
+1. Go to AWS Console: https://console.aws.amazon.com
+2. Click your username → "Security credentials"
+3. Scroll to "Access keys" → "Create access key"
+4. Download the keys (you won't see the secret again!)
+
+---
+
+#### Step 3: Generate SSH Key Pair
+
+**Why?** You need an SSH key to securely access your EC2 instance.
+
+**Generate the key:**
+```bash
+cd "/Users/georgekariuki/Desktop/Inventory API"
+./scripts/setup-ssh-key.sh
+```
+
+This creates:
+- `.ssh/id_rsa` - Private key (keep secret!)
+- `.ssh/id_rsa.pub` - Public key (Terraform uploads this to AWS)
+
+**What happens:**
+- Terraform will upload the public key to AWS
+- AWS will install it on your EC2 instance
+- You can SSH in using the private key
+
+---
+
+#### Step 4: Update Docker Image Reference
+
+**Before deploying, update the user_data.sh script:**
+
+Edit `terraform/user_data.sh` and replace `YOUR_DOCKER_USERNAME` with your actual Docker Hub username:
+
+```bash
+# Find this line in user_data.sh:
+image: YOUR_DOCKER_USERNAME/inventory-api:latest
+
+# Replace with your Docker Hub username:
+image: georgekariuki/inventory-api:latest
+```
+
+---
+
+#### Step 5: Initialize Terraform
+
+**Navigate to terraform directory:**
+```bash
+cd terraform
+```
+
+**Initialize Terraform:**
+```bash
+terraform init
+```
+
+**What this does:**
+- Downloads AWS provider plugin
+- Sets up Terraform backend
+- Prepares for deployment
+
+**Expected output:**
+```
+Initializing provider plugins...
+Terraform has been successfully initialized!
+```
+
+---
+
+#### Step 6: Plan the Deployment
+
+**See what Terraform will create:**
+```bash
+terraform plan
+```
+
+**What this does:**
+- Shows you exactly what resources will be created
+- Checks for errors before deploying
+- Shows you the changes
+
+**Review the plan:**
+- 1 EC2 instance (t2.micro)
+- 1 Security Group (firewall rules)
+- 1 Key Pair (SSH access)
+
+---
+
+#### Step 7: Deploy Infrastructure
+
+**Create the resources:**
+```bash
+terraform apply
+```
+
+**What happens:**
+- Terraform asks for confirmation (type `yes`)
+- Creates EC2 instance in AWS
+- Sets up security groups
+- Uploads SSH key
+- Runs user_data.sh script (installs Docker, etc.)
+
+**This takes 2-3 minutes!**
+
+**After completion, you'll see:**
+```
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+instance_public_ip = "54.123.45.67"
+api_url = "http://54.123.45.67:8000"
+prometheus_url = "http://54.123.45.67:9090"
+ssh_command = "ssh -i ../.ssh/id_rsa ec2-user@54.123.45.67"
+```
+
+---
+
+#### Step 8: Deploy Your App on EC2
+
+**SSH into your EC2 instance:**
+```bash
+# Use the command from terraform output, or:
+ssh -i ../.ssh/id_rsa ec2-user@<YOUR_EC2_IP>
+```
+
+**Once connected, update docker-compose.yml:**
+```bash
+cd /home/ec2-user/inventory-api
+nano docker-compose.yml
+# Replace YOUR_DOCKER_USERNAME with your Docker Hub username
+```
+
+**Start the services:**
+```bash
+docker-compose up -d
+```
+
+**Check status:**
+```bash
+docker-compose ps
+docker-compose logs -f
+```
+
+---
+
+#### Step 9: Access Your Services
+
+**Your Inventory API:**
+- URL: `http://<EC2_IP>:8000`
+- Docs: `http://<EC2_IP>:8000/docs`
+
+**Prometheus:**
+- URL: `http://<EC2_IP>:9090`
+- Explore metrics: Go to Status → Targets (see what's being monitored)
+
+**Test the API:**
+```bash
+curl http://<EC2_IP>:8000/health
+curl http://<EC2_IP>:8000/products/
+```
+
+---
+
+#### Step 10: Add Metrics Endpoint to Your App
+
+**We need to expose metrics for Prometheus to scrape.**
+
+**Install prometheus-client:**
+```bash
+# Add to pyproject.toml
+poetry add prometheus-client
+```
+
+**Add metrics endpoint to FastAPI:**
+```python
+# In app/main.py
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
+
+@app.get("/metrics")
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+```
+
+**Rebuild and push Docker image:**
+```bash
+docker build -t YOUR_USERNAME/inventory-api:latest .
+docker push YOUR_USERNAME/inventory-api:latest
+```
+
+**Update on EC2:**
+```bash
+ssh into EC2
+cd /home/ec2-user/inventory-api
+docker-compose pull app
+docker-compose up -d app
+```
+
+---
+
+### Understanding the Files (Stage 4)
+
+#### `terraform/main.tf`
+- **Defines infrastructure** - EC2 instance, security groups, networking
+- **Uses data sources** - Finds latest Amazon Linux AMI automatically
+- **Creates resources** - Everything needed to run your app
+
+#### `terraform/variables.tf`
+- **Configurable values** - Region, instance type, project name
+- **Easy to change** - Modify defaults or pass via command line
+
+#### `terraform/user_data.sh`
+- **Runs on startup** - Executes when EC2 instance first boots
+- **Installs software** - Docker, Docker Compose
+- **Sets up services** - Creates docker-compose.yml, Prometheus config
+
+#### `prometheus/prometheus.yml`
+- **Monitoring config** - What to scrape, how often
+- **Target definitions** - Where your services are
+- **Scrape intervals** - How frequently to collect metrics
+
+---
+
+### Terraform Commands Reference
+
+```bash
+# Initialize Terraform
+terraform init
+
+# See what will be created
+terraform plan
+
+# Create infrastructure
+terraform apply
+
+# Destroy everything (careful!)
+terraform destroy
+
+# Show current state
+terraform show
+
+# List resources
+terraform state list
+
+# Get output values
+terraform output
+```
+
+---
+
+### Monitoring with Prometheus
+
+**Access Prometheus UI:**
+- Go to: `http://<EC2_IP>:9090`
+
+**Useful queries:**
+```
+# CPU usage
+rate(process_cpu_seconds_total[5m])
+
+# Memory usage
+process_resident_memory_bytes
+
+# HTTP requests
+http_requests_total
+
+# Request rate
+rate(http_requests_total[5m])
+```
+
+**View targets:**
+- Status → Targets
+- See if Prometheus can reach your services
+
+---
+
+### Stage 4: Quick Start Guide
+
+#### Quick Setup (5 Steps)
+
+**Step 1: Install Terraform**
+```bash
+# macOS
+brew install terraform
+
+# Verify
+terraform version
+```
+
+**Step 2: Set Up AWS Credentials**
+```bash
+# Option 1: AWS CLI
+aws configure
+# Enter: Access Key ID, Secret Key, Region (us-east-1), Format (json)
+
+# Option 2: Environment Variables
+export AWS_ACCESS_KEY_ID="your-key"
+export AWS_SECRET_ACCESS_KEY="your-secret"
+export AWS_DEFAULT_REGION="us-east-1"
+```
+
+**Step 3: Generate SSH Key**
+```bash
+cd "/Users/georgekariuki/Desktop/Inventory API"
+./scripts/setup-ssh-key.sh
+```
+
+**Step 4: Deploy Infrastructure**
+```bash
+cd terraform
+terraform init
+terraform plan    # Review what will be created
+terraform apply   # Type 'yes' to confirm
+```
+
+**Step 5: Deploy Your App**
+```bash
+# SSH into EC2 (use IP from terraform output)
+ssh -i ../.ssh/id_rsa ec2-user@<EC2_IP>
+
+# Once connected:
+cd /home/ec2-user/inventory-api
+nano docker-compose.yml  # Replace YOUR_DOCKER_USERNAME
+docker-compose up -d
+```
+
+#### Verify Everything Works
+
+**Your API:**
+```bash
+curl http://<EC2_IP>:8000/health
+curl http://<EC2_IP>:8000/docs
+```
+
+**Prometheus:**
+- Open: `http://<EC2_IP>:9090`
+- Go to: Status → Targets
+- Should see: `inventory-api` and `prometheus` as UP
+
+#### Clean Up
+
+```bash
+cd terraform
+terraform destroy  # Removes everything
+```
+
+#### Prerequisites Checklist
+
+- [ ] AWS Account created
+- [ ] AWS Access Key generated
+- [ ] Terraform installed
+- [ ] SSH key generated
+- [ ] Docker image pushed to Docker Hub
+- [ ] Updated docker-compose.yml with your Docker Hub username
+
+#### Important URLs
+
+After deployment, you'll have:
+- **API:** `http://<EC2_IP>:8000`
+- **API Docs:** `http://<EC2_IP>:8000/docs`
+- **Metrics:** `http://<EC2_IP>:8000/metrics`
+- **Prometheus:** `http://<EC2_IP>:9090`
+
+---
+
+### What We've Accomplished in Stage 4
+
+#### Files Created
+
+**Terraform Configuration:**
+- `terraform/main.tf` - Main infrastructure definition
+- `terraform/variables.tf` - Configurable values
+- `terraform/user_data.sh` - Startup script
+- `terraform/.gitignore` - Excludes sensitive files
+
+**Prometheus Configuration:**
+- `prometheus/prometheus.yml` - Monitoring configuration
+
+**Scripts:**
+- `scripts/setup-ssh-key.sh` - SSH key generator
+
+**Application Updates:**
+- `app/main.py` - Added `/metrics` endpoint
+- `pyproject.toml` - Added `prometheus-client` dependency
+
+#### What Each Component Does
+
+**1. Terraform (`terraform/main.tf`)**
+- **Purpose:** Define infrastructure in code
+- **Key Resources:**
+  - `aws_instance.app` - Creates the EC2 virtual server
+  - `aws_security_group.app_sg` - Firewall rules (ports 22, 8000, 9090)
+  - `aws_key_pair.app_key` - SSH key for secure access
+  - `data.aws_ami.amazon_linux` - Finds latest Amazon Linux image
+- **Why it's powerful:**
+  - Version controlled infrastructure
+  - Reproducible deployments
+  - No manual clicking in AWS console
+
+**2. Security Group (`aws_security_group`)**
+- **Purpose:** Firewall for your EC2 instance
+- **Rules:**
+  - **Port 22 (SSH)** - Allows you to connect to the server
+  - **Port 8000 (HTTP)** - Your Inventory API
+  - **Port 9090 (Prometheus)** - Metrics dashboard
+- **Why it matters:**
+  - Controls what traffic can reach your server
+  - Security best practice
+  - Prevents unauthorized access
+
+**3. User Data Script (`user_data.sh`)**
+- **Purpose:** Automates server setup
+- **What it does:**
+  1. Updates system packages
+  2. Installs Docker
+  3. Installs Docker Compose
+  4. Creates docker-compose.yml
+  5. Sets up Prometheus config
+- **Why it's useful:**
+  - No manual server configuration
+  - Consistent setup every time
+  - Runs automatically on boot
+
+**4. Prometheus (`prometheus/prometheus.yml`)**
+- **Purpose:** Collect and store metrics
+- **What it monitors:**
+  - Your Inventory API (`/metrics` endpoint)
+  - Prometheus itself
+  - System metrics (if you add node-exporter)
+- **Why it's important:**
+  - See how much RAM/CPU your app uses
+  - Track request rates
+  - Identify performance issues
+  - Set up alerts
+
+**5. Metrics Endpoint (`/metrics`)**
+- **Purpose:** Expose application metrics
+- **What it provides:**
+  - Process metrics (CPU, memory)
+  - HTTP metrics (requests, latency)
+  - Custom metrics (you can add more)
+- **How Prometheus uses it:**
+  - Scrapes `/metrics` every 15 seconds
+  - Stores data in time-series database
+  - Makes it queryable via PromQL
+
+---
+
+### How It All Works Together
+
+```
+1. You run: terraform apply
+   ↓
+2. Terraform creates EC2 instance in AWS
+   ↓
+3. EC2 instance boots and runs user_data.sh
+   ↓
+4. Docker and Docker Compose are installed
+   ↓
+5. docker-compose.yml is created
+   ↓
+6. You SSH in and run: docker-compose up -d
+   ↓
+7. Your app starts on port 8000
+   ↓
+8. Prometheus starts on port 9090
+   ↓
+9. Prometheus scrapes /metrics from your app
+   ↓
+10. You can view metrics in Prometheus UI!
+```
+
+---
+
+### What You Can Monitor
+
+**Basic Metrics (automatic):**
+- `process_cpu_seconds_total` - CPU usage
+- `process_resident_memory_bytes` - RAM usage
+- `process_start_time_seconds` - When app started
+- `python_info` - Python version info
+
+**HTTP Metrics (if you add middleware):**
+- Request count
+- Request duration
+- Response status codes
+
+**Custom Metrics (you can add):**
+- Number of products in database
+- API response times
+- Error rates
+- Database connection pool size
+
+---
+
+### Key Concepts Learned (Stage 4)
+
+**Infrastructure as Code (IaC)**
+- **Definition:** Infrastructure defined in code files
+- **Tool:** Terraform
+- **Benefit:** Version controlled, reproducible infrastructure
+
+**Observability**
+- **Definition:** Understanding what your app is doing
+- **Tool:** Prometheus
+- **Benefit:** Debug faster, prevent crashes, optimize performance
+
+**Cloud Infrastructure**
+- **AWS EC2:** Virtual servers in the cloud
+- **Security Groups:** Firewall rules
+- **Key Pairs:** Secure SSH access
+
+**Monitoring**
+- **Metrics:** Numerical data (CPU, RAM, requests)
+- **Scraping:** Prometheus collects metrics periodically
+- **Time-series:** Data stored with timestamps
+
+---
+
+### Troubleshooting (Stage 4)
+
+**Terraform errors:**
+- Check AWS credentials: `aws sts get-caller-identity`
+- Verify region is correct
+- Check SSH key exists: `ls -la .ssh/id_rsa.pub`
+
+**EC2 connection issues:**
+- Wait 2-3 minutes after creation (instance needs to boot)
+- Check security group allows SSH (port 22)
+- Verify key pair is correct
+
+**App not accessible:**
+- Check security group allows port 8000
+- Verify Docker containers are running: `docker ps`
+- Check logs: `docker-compose logs`
+
+**Prometheus not scraping:**
+- Verify Prometheus config: `docker-compose exec prometheus cat /etc/prometheus/prometheus.yml`
+- Check targets: Prometheus UI → Status → Targets
+- Ensure /metrics endpoint exists on your app
+
+---
+
+### Clean Up (Important!)
+
+**To avoid AWS charges, destroy resources when done:**
+
+```bash
+cd terraform
+terraform destroy
+```
+
+**This will:**
+- Terminate EC2 instance
+- Delete security group
+- Remove key pair
+- **Free tier:** No charges if you stay within limits
+
+---
+
+### Next Steps for Stage 4
+
+- [ ] Add Grafana for visualization (beautiful dashboards!)
+- [ ] Set up alerts (notify when metrics exceed thresholds)
+- [ ] Add more metrics (database connections, response times)
+- [ ] Use Terraform Cloud for remote state
+- [ ] Add multiple environments (dev, staging, prod)
+
+---
+
+### Resources
+
+- **Terraform Docs:** https://www.terraform.io/docs
+- **AWS EC2 Docs:** https://docs.aws.amazon.com/ec2/
+- **Prometheus Docs:** https://prometheus.io/docs/
+- **AWS Free Tier:** https://aws.amazon.com/free/
+- **Prometheus Client Python:** https://github.com/prometheus/client_python
+
+---
+
+**Congratulations!** 🎉 You've completed all 4 stages and learned Backend Development, Docker, CI/CD, and Infrastructure as Code!
 
