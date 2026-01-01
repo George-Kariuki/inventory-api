@@ -2,7 +2,7 @@
 name = "inventory-api"
 version = "0.1.0"
 description = "A learning project for backend and DevOps fundamentals"
-authors = ["George Kariuki <george@example.com>"]
+authors = ["George Kariuki <georgekariuki49@gmail.com>"]
 readme = "README.md"
 package-mode = false
 
